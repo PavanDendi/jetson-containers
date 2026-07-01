@@ -84,6 +84,17 @@ elif [ "${TENSORRT_URL%.tar.gz}" != "$TENSORRT_URL" ] || [ "${TENSORRT_URL%.tgz}
         PYTHON_SITE="/usr/local/lib/python${PYTHON_VERSION}/dist-packages"
         mkdir -p "${PYTHON_SITE}"
         cp -r python/* "${PYTHON_SITE}/" 2>/dev/null || true
+
+        # Copying the wheels onto disk above does NOT make `import tensorrt` work in
+        # the active environment (e.g. the uv venv) -- pip/uv never installed them,
+        # so `import tensorrt` fails even though the C++ runtime is fully present.
+        # Install the interpreter-matching wheel from the on-disk wheels (no network
+        # or index needed; --find-links resolves the tensorrt_libs/_bindings siblings).
+        if ls "${PYTHON_SITE}"/tensorrt-*.whl >/dev/null 2>&1; then
+            echo "Installing the tensorrt python wheel into the environment..."
+            uv pip install --no-index --find-links "${PYTHON_SITE}" tensorrt \
+              || pip3 install --no-index --find-links "${PYTHON_SITE}" tensorrt
+        fi
     fi
 
     # Install bin tools if they exist
