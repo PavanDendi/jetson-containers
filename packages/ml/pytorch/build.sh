@@ -119,4 +119,11 @@ python3 -c 'import torch; print(f"PyTorch {torch.__version__} installed successf
 # Verify installation in detail
 python3 -c 'import torch; print(torch.__version__); print(torch.cuda.is_available()); print(torch.backends.cudnn.version()); print(torch.__config__.show());'
 
-twine upload --verbose /opt/torch*.whl || echo "failed to upload wheel to ${TWINE_REPOSITORY_URL}"
+# Only attempt the wheel upload when real credentials were provided; the default
+# PIP_UPLOAD_PASS is 'none' and the upload host (jetson-ai-lab.io) is offline here,
+# so skip it to avoid minutes of DNS-retry timeouts on every from-scratch build.
+if [ "${TWINE_PASSWORD:-none}" != "none" ]; then
+  twine upload --verbose /opt/torch*.whl || echo "failed to upload wheel to ${TWINE_REPOSITORY_URL}"
+else
+  echo "skipping torch wheel upload (no TWINE_PASSWORD / PIP_UPLOAD_PASS set)"
+fi

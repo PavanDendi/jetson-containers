@@ -17,4 +17,10 @@ rm -rf /opt/torchvision
 uv pip install /opt/torchvision*.whl
 uv pip show torchvision && python3 -c 'import torchvision; print(torchvision.__version__);'
 
-twine upload --verbose /opt/torchvision*.whl || echo "failed to upload wheel to ${TWINE_REPOSITORY_URL}"
+# Only upload when real credentials were provided (default PIP_UPLOAD_PASS='none',
+# and the jetson-ai-lab upload host is offline here) -- skip to avoid DNS-retry waits.
+if [ "${TWINE_PASSWORD:-none}" != "none" ]; then
+  twine upload --verbose /opt/torchvision*.whl || echo "failed to upload wheel to ${TWINE_REPOSITORY_URL}"
+else
+  echo "skipping torchvision wheel upload (no TWINE_PASSWORD / PIP_UPLOAD_PASS set)"
+fi

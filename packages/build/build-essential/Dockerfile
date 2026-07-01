@@ -57,7 +57,15 @@ RUN set -ex \
     && ccache --set-config=max_size=$CCACHE_MAXSIZE \
     && ccache --show-config \
     && gcc --version \
-    && g++ --version
+    && g++ --version \
+    \
+    # Abort-and-retry stalled git fetches instead of hanging forever: if a transfer
+    # drops below ~1 KB/s for 60s, git aborts (the build's retry/|| logic re-attempts).
+    # Deeply nested submodule clones (pytorch's kineto/dynolog, full-history ffmpeg)
+    # can otherwise stall a single throttled GitHub fetch with no progress. --system
+    # writes /etc/gitconfig so every later stage's git clone inherits it.
+    && git config --system http.lowSpeedLimit 1000 \
+    && git config --system http.lowSpeedTime 60
 
 COPY tarpack vercmp /usr/local/bin/
 RUN chmod a+rx /usr/local/bin/tarpack /usr/local/bin/vercmp
