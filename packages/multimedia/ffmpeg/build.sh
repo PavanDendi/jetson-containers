@@ -11,12 +11,18 @@ DIST="/opt/ffmpeg/dist"
 # pkg-config search path (include both /usr/local and our dist)
 export PKG_CONFIG_PATH="${PREFIX}/lib/pkgconfig:${DIST}/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 
-echo "BUILDING FFMPEG $FFMPEG_VERSION to $DIST"
-wget $WGET_FLAGS https://www.ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.gz
-tar -xvzf ffmpeg-$FFMPEG_VERSION.tar.gz
-
-mv ffmpeg-${FFMPEG_VERSION} ffmpeg
+# Build FFmpeg from a pinned git commit rather than a release tarball. The Video
+# Codec SDK 13.1 nvenc fix (NV_ENC_CLOCK_TIMESTAMP_SET.countingType split into
+# countingTypeLSB/MSB -- FFmpeg 0a7c5e50, landed on master 2026-06-09) is required
+# to compile nvenc against SDK >= 13.1, but it is not in any release tarball yet
+# (8.1 / 8.1.1 still have the old field). Pin the commit for reproducibility;
+# override with FFMPEG_GIT_REF, and drop this back to the tarball once a release
+# contains the fix.
+FFMPEG_GIT_REF="${FFMPEG_GIT_REF:-0a7c5e507b4448f02ca914c50654a3bc979d02dd}"
+echo "BUILDING FFMPEG $FFMPEG_VERSION (git ref ${FFMPEG_GIT_REF}) to $DIST"
+git clone https://github.com/FFmpeg/FFmpeg ffmpeg
 cd ffmpeg
+git checkout ${FFMPEG_GIT_REF}
 
 # deps...
 apt-get update && apt-get install -y --no-install-recommends \
