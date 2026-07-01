@@ -1,7 +1,7 @@
 from jetson_containers import CUDA_VERSION, CUDA_ARCHITECTURES
 from packaging.version import Version
 
-def opencv(version, requires=None, default=False, url=None):
+def opencv(version, requires=None, default=False, url=None, git_ref=None):
     cv = package.copy()
 
     cv['build_args'] = {
@@ -9,6 +9,12 @@ def opencv(version, requires=None, default=False, url=None):
         'OPENCV_PYTHON': f"{version.split('.')[0]}.x",
         'CUDA_ARCH_BIN': ','.join([f'{x/10:.1f}' for x in CUDA_ARCHITECTURES]),
     }
+
+    # Build from a branch/commit distinct from the version stamp when a needed fix
+    # is not yet in any release tag (build.sh clones OPENCV_GIT_REF, stamps the
+    # wheel OPENCV_VERSION).
+    if git_ref:
+        cv['build_args']['OPENCV_GIT_REF'] = git_ref
 
     if url:
         cv['build_args']['OPENCV_URL'] = url
@@ -47,7 +53,9 @@ package = [
     opencv('4.11.0', '>=35', default=False),
     opencv('4.12.0', '>=36', default=False), # Blackwell Support
     opencv('4.13.0', '>=36', default=(CUDA_VERSION >= Version('12.6') and CUDA_VERSION < Version('13.1'))), # Thor Support
-    opencv('4.14.0', '>=36', default=(CUDA_VERSION >= Version('13.2'))), # Thor Support
+    # 4.14.0 is not a released tag yet; the cudev CUDA-13.2 fix (Thrust/CCCL tuple
+    # template change) lives on the 4.x branch. Build 4.x, stamp the wheel 4.14.0.
+    opencv('4.14.0', '>=36', default=(CUDA_VERSION >= Version('13.2')), git_ref='4.x'), # Thor / CUDA 13.2
 
     # JetPack 4
     opencv('4.5.0', '==32.*', default=True, url='https://nvidia.box.com/shared/static/5v89u6g5rb62fpz4lh0rz531ajo2t5ef.gz'),
