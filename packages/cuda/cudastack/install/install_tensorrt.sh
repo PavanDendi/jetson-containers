@@ -90,10 +90,23 @@ elif [ "${TENSORRT_URL%.tar.gz}" != "$TENSORRT_URL" ] || [ "${TENSORRT_URL%.tgz}
         # so `import tensorrt` fails even though the C++ runtime is fully present.
         # Install the interpreter-matching wheel from the on-disk wheels (no network
         # or index needed; --find-links resolves the tensorrt_libs/_bindings siblings).
+        #
+        # Guarded on purpose: depending on build order this stage can run BEFORE a
+        # Python installer / venv exists (e.g. `uv`/`pip` not yet on PATH), so only
+        # attempt the install when one is available and never abort the build on it.
+        # When neither is present the wheels stay on disk for a later stage to install.
         if ls "${PYTHON_SITE}"/tensorrt-*.whl >/dev/null 2>&1; then
-            echo "Installing the tensorrt python wheel into the environment..."
-            uv pip install --no-index --find-links "${PYTHON_SITE}" tensorrt \
-              || pip3 install --no-index --find-links "${PYTHON_SITE}" tensorrt
+            if command -v uv >/dev/null 2>&1; then
+                echo "Installing the tensorrt python wheel into the environment (uv)..."
+                uv pip install --no-index --find-links "${PYTHON_SITE}" tensorrt \
+                  || echo "WARNING: tensorrt wheel install via uv failed"
+            elif command -v pip3 >/dev/null 2>&1; then
+                echo "Installing the tensorrt python wheel into the environment (pip3)..."
+                pip3 install --no-index --find-links "${PYTHON_SITE}" tensorrt \
+                  || echo "WARNING: tensorrt wheel install via pip3 failed"
+            else
+                echo "note: no uv/pip in this stage; tensorrt wheels left in ${PYTHON_SITE} for a later stage to install"
+            fi
         fi
     fi
 
