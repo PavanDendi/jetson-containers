@@ -1,3 +1,4 @@
+import os
 from jetson_containers import CUDA_VERSION, CUDA_ARCHITECTURES
 from packaging.version import Version
 
@@ -7,7 +8,10 @@ def opencv(version, requires=None, default=False, url=None, git_ref=None):
     cv['build_args'] = {
         'OPENCV_VERSION': version,
         'OPENCV_PYTHON': f"{version.split('.')[0]}.x",
-        'CUDA_ARCH_BIN': ','.join([f'{x/10:.1f}' for x in CUDA_ARCHITECTURES]),
+        # Fleet is all sm_87 (AGX / Orin Nano); building only 8.7 cuts opencv compile
+        # time and peak memory vs the full multi-arch list. LOCAL build tuning only,
+        # env-overridable. Not for upstream.
+        'CUDA_ARCH_BIN': os.environ.get('CUDA_ARCH_BIN', '8.7'),
     }
 
     # Build from a branch/commit distinct from the version stamp when a needed fix
