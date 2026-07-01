@@ -172,7 +172,13 @@ def cuda_stack(name, with_tensorrt=False, minimal=False, requires=None):
         build_args['ENABLE_DISTRIBUTED_JETSON_NCCL'] = '1'
 
     pkg['build_args'] = build_args
-    pkg['depends'] = ['cuda']  # cudastack depends ON cuda, doesn't replace it
+    # Preserve the depends declared in the Dockerfile header
+    # (`# depends: [build-essential, cuda, numpy]`). Overwriting with just ['cuda']
+    # silently drops `numpy` -> `python`, which is what creates the /opt/venv. Without
+    # that ordering constraint the resolver places cudastack right after `cuda`, i.e.
+    # BEFORE the venv exists, so anything that must install into the venv (e.g. the
+    # TensorRT python bindings) can't. Keep the full declared set.
+    pkg['depends'] = ['build-essential', 'cuda', 'numpy']
 
     if requires:
         pkg['requires'] = requires
