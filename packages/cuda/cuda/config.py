@@ -195,7 +195,14 @@ def pip_cache(version, requires=None):
         'PIP_INDEX_REPO': pip_index_url,
         'FALLBACK_PIP_INDEX_URL': fallback_pip_url,
         'PIP_TRUSTED_HOSTS': trusted_hosts,
-        'UV_EXTRA_INDEX_URL': f"https://pypi.{index_host}/root/pypi/+simple",
+        # Fall back to PyPI for anything the derived jetson-ai-lab index does not
+        # publish (e.g. no jp7/* or sbsa/cu132 exists yet, so common packages and
+        # implicit build backends like scikit-build 404). All os.environ-overridable
+        # so a private mirror still wins. uv does not reliably honor
+        # PIP_EXTRA_INDEX_URL (astral-sh/uv#1688), so set the UV_* family too.
+        'PIP_EXTRA_INDEX_URL': os.environ.get('PIP_EXTRA_INDEX_URL', 'https://pypi.org/simple'),
+        'UV_EXTRA_INDEX_URL': os.environ.get('UV_EXTRA_INDEX_URL', 'https://pypi.org/simple'),
+        'UV_INDEX_STRATEGY': os.environ.get('UV_INDEX_STRATEGY', 'unsafe-best-match'),
         'PIP_UPLOAD_REPO': os.environ.get('PIP_UPLOAD_REPO', f"http://{upload_host}/{pip_path}"),
         'PIP_UPLOAD_USER': os.environ.get('PIP_UPLOAD_USER',
             'sbsa' if IS_SBSA
