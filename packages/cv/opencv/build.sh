@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-echo "Building opencv-python ${OPENCV_VERSION}"
+# OPENCV_GIT_REF is the git tag/branch/commit to build from; it defaults to the
+# release tag matching OPENCV_VERSION but can be decoupled (e.g. build the 4.x
+# branch for a fix not yet in any tag, while still stamping a valid wheel version).
+OPENCV_GIT_REF="${OPENCV_GIT_REF:-${OPENCV_VERSION}}"
+echo "Building opencv-python ${OPENCV_VERSION} (git ref: ${OPENCV_GIT_REF})"
 set -ex
 cd /opt
 
@@ -7,22 +11,22 @@ cd /opt
 bash $TMP/install_deps.sh
 
 
-git clone --branch "${OPENCV_VERSION}" --recursive https://github.com/opencv/opencv \
+git clone --branch "${OPENCV_GIT_REF}" --recursive https://github.com/opencv/opencv \
   || git clone --recursive https://github.com/opencv/opencv
 
-git clone --branch "${OPENCV_VERSION}" --recursive https://github.com/opencv/opencv_contrib \
+git clone --branch "${OPENCV_GIT_REF}" --recursive https://github.com/opencv/opencv_contrib \
   || git clone --recursive https://github.com/opencv/opencv_contrib
 
 git clone --branch "${OPENCV_PYTHON}" --recursive https://github.com/opencv/opencv-python \
   || git clone --recursive https://github.com/opencv/opencv-python && export ENABLE_ROLLING=1
 
 cd /opt/opencv-python/opencv || git checkout --recurse-submodules origin/4.x
-git checkout --recurse-submodules ${OPENCV_VERSION} || git checkout --recurse-submodules origin/4.x
+git checkout --recurse-submodules ${OPENCV_GIT_REF} || git checkout --recurse-submodules origin/4.x
 cat modules/core/include/opencv2/core/version.hpp
 cd ../opencv_contrib
-git checkout --recurse-submodules ${OPENCV_VERSION} || git checkout --recurse-submodules origin/4.x
+git checkout --recurse-submodules ${OPENCV_GIT_REF} || git checkout --recurse-submodules origin/4.x
 cd ../opencv_extra
-git checkout --recurse-submodules ${OPENCV_VERSION} || git checkout --recurse-submodules origin/4.x
+git checkout --recurse-submodules ${OPENCV_GIT_REF} || git checkout --recurse-submodules origin/4.x
 
 cd ../
 
