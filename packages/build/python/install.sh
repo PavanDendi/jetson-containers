@@ -81,6 +81,19 @@ uv pip install --upgrade \
 # Install publishing tool
 uv pip install --upgrade --index-url "${PIP_INDEX_URL}" twine
 
+# Install any TensorRT python wheels the cudastack stage left on disk into this
+# freshly-created venv. cudastack copies them to dist-packages but can't pip-install
+# them (no venv/uv exists that early); this is the first stage with the venv + uv,
+# so install them here so `import tensorrt` works in /opt/venv (else preflight trips).
+# Guarded: a no-op when no wheels are present (build without cudastack). No network.
+TRT_SITE="/usr/local/lib/python${PYTHON_VERSION}/dist-packages"
+if ls "${TRT_SITE}"/tensorrt-*.whl >/dev/null 2>&1; then
+  echo "Installing cudastack TensorRT wheels into the venv from ${TRT_SITE}..."
+  uv pip install --no-index --find-links "${TRT_SITE}" tensorrt \
+    && python3 -c 'import tensorrt; print("tensorrt", tensorrt.__version__)' \
+    || echo "WARNING: tensorrt venv install failed (wheels present but not installed)"
+fi
+
 # Cleanup
 rm -rf /var/lib/apt/lists/*
 apt-get clean
